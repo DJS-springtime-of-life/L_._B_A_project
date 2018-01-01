@@ -1,0 +1,489 @@
+---
+title: "lotte"
+author: "chall"
+date: "2017년 12월 12일"
+output: html_document
+---
+
+```{r}
+library(needs)
+needs(dplyr, stringr, reshape, tibble, gsubfn, arules,lubridate, ggplot2)
+```
+
+1. 데이터 인풋
+```{r}
+ user <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/user.csv",sep=",",header=T)
+#
+ in_shopping_log <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/in_shopping_log.csv",sep=",",header=T)
+#
+ out_shopping_log <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/out_shopping_log.csv",sep=",",header=T)
+#
+ shopping_category<- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/shopping_category.csv", sep="," ,header=T)
+#
+# # #==== 외부 데이터 ====#
+ ADDRESS<- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/address.csv",sep=",",header=T)
+
+# # 도로명 주소
+#
+ WEATHER<- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/WEATHER.csv",sep=",",header=T) # 날씨
+```
+
+2. 주소데이터 전처리
+```{r}
+# names(address)<- c("HOM_PST_NO","si","gu")
+# address$HOM_PST_NO<-address$HOM_PST_NO + 100000
+# address$HOM_PST_NO<-substr(address$HOM_PST_NO,2,4)
+# address<-distinct(address)
+# address<-edit(address)
+# write.csv(address,"address.csv",row.names = F)
+```
+
+3. 날씨/온도데이터 전처리
+```{r}
+#  #1 서울시 010 ~ 090
+#  s010_090 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/서울_010~090.csv",sep=",",header=T)
+#  s010_090 <- s010_090 %>% select(2,3,13,20)
+#  s010_090$HOM_PST_NO <- "010"
+#  temp<-s010_090
+#  for(i in 10:90){
+#    s010_090$HOM_PST_NO<- i
+#    temp<-rbind(temp,s010_090)
+#  }
+#  WEATHER<-temp %>% filter(HOM_PST_NO != "010")
+# 
+#  #2 파주시 100 ~ 110
+#  s100_110 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/파주_100~110.csv",sep=",",header=T)
+#  s100_110 <- s100_110 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(100,110)){
+#    s100_110$HOM_PST_NO<- i
+#    temp<-rbind(temp,s100_110)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #3 양평 120 ~ 150
+#  s120_150 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/양평_120~150.csv",sep=",",header=T)
+#  s120_150 <- s120_150 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(120,130,140,150)){
+#    s120_150$HOM_PST_NO<- i
+#    temp<-rbind(temp,s120_150)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #4 수원 160 ~ 200
+#  s160_200 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/수원_160~200.csv",sep=",",header=T)
+#  s160_200 <- s160_200 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(160,170,180,190,200)){
+#    s160_200$HOM_PST_NO<- i
+#    temp<-rbind(temp,s160_200)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #5 인천 210 ~ 230
+#  s210_230 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/인천_210~230.csv",sep=",",header=T)
+#  s210_230 <- s210_230 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(210,220,230)){
+#    s210_230$HOM_PST_NO<- i
+#    temp<-rbind(temp,s210_230)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #6 춘천 240
+#  s240 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/춘천_240.csv",sep=",",header=T)
+#  s240 <- s240 %>% select(2,3,13,20)
+#  s240$HOM_PST_NO<- 240
+#  WEATHER<- rbind(WEATHER,s240)
+# 
+#  #7 홍천 250
+#  s250 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/홍천_250.csv",sep=",",header=T)
+#  s250 <- s250 %>% select(2,3,13,20)
+#  s250$HOM_PST_NO<- 250
+#  WEATHER<- rbind(WEATHER,s250)
+# 
+#  #8 원주 260
+#  s260 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/원주_260.csv",sep=",",header=T)
+#  s260 <- s260 %>% select(2,3,13,20)
+#  s260$HOM_PST_NO<- 260
+#  WEATHER<- rbind(WEATHER,s260)
+# 
+#  #9 청주 270 ~ 290
+#  s270_290 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/청주_270~290.csv",sep=",",header=T)
+#  s270_290 <- s270_290 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(270,280,290)){
+#    s270_290$HOM_PST_NO<- i
+#    temp<-rbind(temp,s270_290)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #10 세종 300
+#  s300 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/대전_세종_300340350.csv",sep=",",header=T)
+#  s300 <- s300 %>% select(2,3,13,20)
+#  s300$HOM_PST_NO<- 300
+#  WEATHER<- rbind(WEATHER,s300)
+# 
+#  #11 부여 310~330
+#  s310_330 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/부여_310~330.csv",sep=",",header=T)
+#  s310_330 <- s310_330 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(310,320,330)){
+#    s310_330$HOM_PST_NO<- i
+#    temp<-rbind(temp,s310_330)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #12 대전 340~350
+#  s340_350 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/대전_세종_300340350.csv",sep=",",header=T)
+#  s340_350 <- s340_350 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(340,350)){
+#    s340_350$HOM_PST_NO<- i
+#    temp<-rbind(temp,s340_350)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #13 안동 360~400
+#  s360_400 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/안동_360~400.csv",sep=",",header=T)
+#  s360_400 <- s360_400 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(360,370,380,390,400)){
+#    s360_400$HOM_PST_NO<- i
+#    temp<-rbind(temp,s360_400)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #14 구미 410~430 (대구를 대신함)
+#  s410_430 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/구미_410~430.csv",sep=",",header=T)
+#  s410_430 <- s410_430 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(410,420,430)){
+#    s410_430$HOM_PST_NO<- i
+#    temp<-rbind(temp,s410_430)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #14 울산 440~450
+#  s440_450 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/울산_440~450.csv",sep=",",header=T)
+#  s440_450 <- s440_450 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(440,450)){
+#   s440_450$HOM_PST_NO<- i
+#    temp<-rbind(temp,s440_450)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #15 부산 460~490
+#  s460_490 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/부산460~490.csv",sep=",",header=T)
+#  s460_490 <- s460_490 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(460,470,480,490)){
+#    s460_490$HOM_PST_NO<- i
+#    temp<-rbind(temp,s460_490)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #16 함양 500~530
+#  s500_530 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/함양_500~530.csv",sep=",",header=T)
+#  s500_530 <- s500_530 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(500,510,520,530)){
+#    s500_530$HOM_PST_NO<- i
+#    temp<-rbind(temp,s500_530)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #17 전주 540~560
+#  s540_560 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/전주_540~560.csv",sep=",",header=T)
+#  s540_560 <- s540_560 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(540,550,560)){
+#    s540_560$HOM_PST_NO<- i
+#    temp<-rbind(temp,s540_560)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #18 목포 570~600
+#  s570_600 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/목포_570~600.csv",sep=",",header=T)
+#  s570_600 <- s570_600 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(570,580,590, 600)){
+#    s570_600$HOM_PST_NO<- i
+#    temp<-rbind(temp,s570_600)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #18 광주 610~620
+#  s610_620 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/광주_610~620.csv",sep=",",header=T)
+#  s610_620 <- s610_620 %>% select(2,3,13,20)
+#  temp<-s010_090
+#  for(i in c(610,620)){
+#    s610_620$HOM_PST_NO<- i
+#    temp<-rbind(temp,s610_620)
+#  }
+#  temp <- temp %>% filter(HOM_PST_NO != 90)
+#  WEATHER<- rbind(WEATHER,temp)
+# 
+#  #19 제주 630
+#  s630 <- read.csv("C:/Users/SUNBIN/개인/Desktop/제4회 Big Data Competition-스마트라이프큐레이터/온도/제주_630.csv",sep=",",header=T)
+#  s630 <- s630 %>% select(2,3,13,20)
+#  s630$HOM_PST_NO<- 630
+#  WEATHER<- rbind(WEATHER,s630)
+# 
+#  names(WEATHER)<-c("DE_DT","TEM","RAIN","WIND","HOM_PST_NO")
+# 
+# write.csv(WEATHER,"weather.csv",row.names = F)
+```
+
+4. 고객 데이터 전처리
+```{r}
+#1 훑어보기
+#table(user$GENDER) # 여성고객을 노려라, 결측값 없음
+#table(user$AGE_PRD)
+
+user$AGE_PRD<- as.character(user$AGE_PRD) # 문자형으로 바꿔주기
+user$AGE_PRD<- substr(user$AGE_PRD,1,2) # 앞에서 2번째까지 자르기
+user$AGE_PRD<- as.numeric(user$AGE_PRD)
+user$AGE_PRD<- user$AGE_PRD + 5
+ # 20대 -> 25
+ # 30대 -> 35
+ # 40대 -> 45
+ # 50대 -> 55
+ # 60대 -> 65
+
+#table(user$HOM_PST_NO)
+sum(is.na(user$HOM_PST_NO)) #결측값 1365명 + 우편번호 0번 220명 = 1585명
+user$HOM_PST_NO<- user$HOM_PST_NO + 1000
+user$HOM_PST_NO<- as.character(user$HOM_PST_NO)
+user$HOM_PST_NO<- substr(user$HOM_PST_NO,2,4)
+
+```
+5. 주소 데이터 전처리
+```{r}
+ADDRESS$HOM_PST_NO<- ADDRESS$HOM_PST_NO + 1000
+ADDRESS$HOM_PST_NO<- as.character(ADDRESS$HOM_PST_NO)
+ADDRESS$HOM_PST_NO<- substr(ADDRESS$HOM_PST_NO,2,4)
+```
+
+6. 쇼핑카테고리데이터 전처리
+```{r}
+in_shopping_log$DE_DT<- as.character(in_shopping_log$DE_DT)
+```
+
+7. 날씨 데이터 전처리
+```{r}
+WEATHER$DE_DT<- as.character(WEATHER$DE_DT) # 날짜 문자형으로 치환
+WEATHER$DE_DT<- gsub('-','',WEATHER$DE_DT)  # - 문자 제거
+
+WEATHER$HOM_PST_NO<-as.numeric(WEATHER$HOM_PST_NO)
+WEATHER$HOM_PST_NO<- WEATHER$HOM_PST_NO + 1000
+WEATHER$HOM_PST_NO<- substr(WEATHER$HOM_PST_NO,2,4)
+WEATHER$HOM_PST_NO<-as.character(WEATHER$HOM_PST_NO)
+```
+
+
+8. 데이터 합치기
+```{r}
+#1 SHOPPING IN
+SPI<- left_join(in_shopping_log,user,by=c("ID"="ID"))
+SPI<- left_join(SPI,shopping_category,by=c("BIZ_UNIT"="BIZ_UNIT","PD_S_C"="PD_S_C"))
+SPI<- left_join(SPI,WEATHER, by=c("DE_DT"="DE_DT","HOM_PST_NO"="HOM_PST_NO"))
+SPI<- left_join(SPI,ADDRESS, by=c("HOM_PST_NO"="HOM_PST_NO"))
+SPI$DE_DT<- as.Date(SPI$DE_DT,format = "%Y%m%d")
+SPI$day<- weekdays(as.Date(SPI$DE_DT,format = "%Y%m%d"))
+
+#2 SHOPPING OUT
+SPO<- left_join(out_shopping_log,user,by=c("ID"="ID"))
+SPO<- left_join(SPO,ADDRESS, by=c("HOM_PST_NO"="HOM_PST_NO"))
+
+# A01:백화점, A02:대형마트, A03:슈퍼마켓, A04:편의점, A05:드러그스토어
+# B01:호텔, B02:여행사, B03:면세점
+# C01:영화관, C02:테마파크, C03:야구관람 
+# D01:패스트푸드, D02:패밀리레스토랑, D03:카페
+```
+
+```{r}
+# 롯데백화점
+A01<- SPI %>% filter(BIZ_UNIT == "A01")
+
+# 롯데마트
+A02<- SPI %>% filter(BIZ_UNIT == "A02")
+
+# 롯데슈퍼
+A03<- SPI %>% filter(BIZ_UNIT == "A03")
+
+# 세븐일레븐
+A04<- SPI %>% filter(BIZ_UNIT == "A04")
+
+# 롯데약국
+A05<- SPI %>% filter(BIZ_UNIT == "A05")
+
+# 롯데호텔
+B01<- SPO %>% filter(BIZ_UNIT == "B01") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(B01, table)[2:7] # 1948명
+
+# 여행사
+B02<- SPO %>% filter(BIZ_UNIT == "B02") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(B02, table)[2:7] # 43명
+
+# 면세점
+B03<- SPO %>% filter(BIZ_UNIT == "B03") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(B03, table)[2:7] # 10296명
+
+# 롯데시네마
+C01<- SPO %>% filter(BIZ_UNIT == "C01") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(C01, table)[2:7] # 10459명
+
+# 롯데월드
+C02<- SPO %>% filter(BIZ_UNIT == "C02") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(C02, table)[2:7] # 7254명
+
+# 경기장
+C03<- SPO %>% filter(BIZ_UNIT == "C03") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(C03, table)[2:7] # 382명
+
+# 패스트푸드
+D01<- SPO %>% filter(BIZ_UNIT == "D01") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(D01, table)[2:7] # 11467명
+
+# 패밀리레스토랑
+D02<- SPO %>% filter(BIZ_UNIT == "D02") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(D02, table)[2:7] # 2248명
+
+# 카페
+D03<- SPO %>% filter(BIZ_UNIT == "D03") %>% distinct(ID,BIZ_UNIT,GENDER,AGE_PRD,HOM_PST_NO,si,gu)
+lapply(D03, table)[2:7] # 11440명
+
+```
+
+#구매내역 없는 사람
+```{r}
+BUY_IN<- SPI %>% select(ID) %>% distinct()
+BUY_IN<- left_join(BUY_IN,user, by =c("ID"="ID"))
+NON_IN<- setdiff(user$ID, BUY_IN$ID)
+NON_IN<- as.data.frame(NON_IN)
+NON_IN$IN<- "a"
+
+BUY_OUT<- SPO %>% select(ID) %>% distinct()
+BUY_OUT<- left_join(BUY_OUT,user, by =c("ID"="ID"))
+NON_OUT<- setdiff(user$ID, BUY_OUT$ID)
+NON_OUT<- as.data.frame(NON_OUT)
+NON_OUT$OUT<- "b"
+
+NON<- full_join(NON_IN,NON_OUT, by=c("NON_IN"="NON_OUT"))
+NON<- na.omit(NON)
+```
+
+# EDA
+```{r}
+temp<- A01 %>% group_by(ID,BR_C,DE_DT,day) %>% summarise(cnt = n(), sum = sum(as.numeric(BUY_AM))) %>% arrange(ID,DE_DT)
+
+# 1회 방문 횟수
+temp2<- temp %>% group_by(ID) %>% summarise(cnt = n()) 
+
+# 1회 방문시 구매 품목 수, 평균 소비 금액
+temp3<- temp %>% group_by(ID) %>% summarise(cnt = n(), sum_avg = mean(sum))
+temp3<-round(temp3)
+temp3$sum_avg<-temp3$sum_avg/1000
+
+# 요일별 방문 횟수
+temp4<- temp %>% group_by(ID,day) %>% summarise(cnt_day = n()) %>% arrange(ID,-cnt_day)
+temp5<- cbind(temp,year = year(temp$DE_DT), month = month(temp$DE_DT)) 
+
+ #방문목적
+temp6<- A01 %>% group_by(ID, BR_C,BIZ_UNIT, DE_DT, PD_H_NM) %>% summarise(cnt = n(), sum = sum(BUY_AM)) %>% arrange(ID,DE_DT)
+
+# 월별 방문횟수
+temp5<- temp5 %>% group_by(ID,year,month) %>% summarise(cnt = n())
+
+# 지출순위 뽑아내기
+temp7<- SPI %>% group_by(ID) %>% summarise(sum = sum(BUY_AM)) %>% arrange(-sum)
+temp7$cum<- cumsum(as.numeric(temp7$sum))
+temp7$rank<- 1:length(temp7$ID)
+temp7$per<-temp7$rank/length(temp7$ID) * 100 %>% round(2)
+
+ggplot(temp7, aes(rank, cum)) + geom_point()
+ggplot(temp3, aes(cnt, sum_avg)) + geom_point() # + ylim(0,40) + xlim(0,45)
+
+# 점포별 매출
+tt<- SPI %>% group_by(BIZ_UNIT, BR_C) %>% summarise(cnt = n(), sum = sum(as.numeric(BUY_AM,na.rm = TRUE)))
+
+# 쇼핑 카테고리
+catego<-shopping_category %>% distinct(BIZ_UNIT,PD_H_NM)
+```
+
+#라이프 스타일
+```{r}
+LS<- A01 %>% group_by(ID,DE_HR,BR_C,day) %>% summarise(cnt=n()) %>% arrange(ID,day,DE_HR)
+LS<- LS %>% select(1,4,2,3,5)
+
+# 점포 방문 횟수
+LS2<- A04 %>% group_by(ID,BR_C,day) %>% summarise(cnt=n()) %>% arrange(ID,day)
+
+
+temp<- LS %>% filter(ID==155)
+ggplot(temp, aes(x=day, y=DE_HR, fill = cnt)) +
+  geom_tile(colour="gray")+
+  theme(axis.text.x=element_text(angle=70, hjust=1),axis.title.y = element_text(vjust=0.5),axis.text.y=element_text(angle=70, hjust=0.6))+
+  scale_x_discrete(limits=c("월요일","화요일","수요일","목요일","금요일","토요일","일요일")) +
+  scale_y_discrete(limits=c(0:23))
+
+
+length(table(shopping_category$PD_H_NM))
+```
+
+```{r}
+temp1<- A01 %>% select(1,10,11,12) %>% distinct()
+temp2<- A02 %>% select(1,10,11,12) %>% distinct()
+temp3<- A03 %>% select(1,10,11,12) %>% distinct()
+temp4<- A04 %>% select(1,10,11,12) %>% distinct()
+temp5<- A05 %>% select(1,10,11,12) %>% distinct()
+t1<-as.data.frame(prop.table(table(temp1$AGE_PRD)))
+t2<-as.data.frame(prop.table(table(temp2$AGE_PRD)))
+t3<-as.data.frame(prop.table(table(temp3$AGE_PRD)))
+t4<-as.data.frame(prop.table(table(temp4$AGE_PRD)))
+t5<-as.data.frame(prop.table(table(temp5$AGE_PRD)))
+
+plot(t1)
+plot(t2)
+plot(t3)
+plot(t4)
+plot(t5)
+```
+
+```{r}
+temp <- A01 %>% group_by(PD_S_NM, PD_M_NM, PD_H_NM) %>% summarise(sum = sum(BUY_AM),cnt = n())
+temp <- A04 
+
+temp$stand<- temp$BUY_AM/temp$BUY_CT
+temp<- temp %>% filter(stand > 3000)
+
+length(table(A04$PD_S_NM))
+```
+
+
+```{r}
+SPO$BIZ<- substr(SPO$BIZ_UNIT, 1,1) 
+table(SPO$BIZ)
+table(SPO$BIZ_UNIT)
+
+
+temp<-A01 %>% subset(A01$ID %in% B02$ID)
+```
+
